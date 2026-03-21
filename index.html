@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MPSS — Motor Part Shop Software</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0a0c10;
+  --surface: #111318;
+  --surface2: #181c24;
+  --border: #1f2430;
+  --accent: #f59e0b;
+  --accent2: #3b82f6;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --radius: 10px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Bebas Neue', sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+
+/* SIDEBAR */
+#sidebar{width:240px;min-height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;left:0;top:0;z-index:100;transition:.3s}
+.logo{padding:24px 20px;border-bottom:1px solid var(--border)}
+.logo-title{font-family:var(--display);font-size:22px;letter-spacing:2px;color:var(--accent)}
+.logo-sub{font-size:11px;color:var(--muted);letter-spacing:1px;margin-top:2px}
+nav{padding:12px 8px;flex:1}
+.nav-section{font-size:10px;letter-spacing:2px;color:var(--muted);padding:12px 12px 6px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;transition:.15s;color:var(--muted);font-size:14px;font-weight:500;margin-bottom:2px;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:rgba(245,158,11,.12);color:var(--accent);border-left:3px solid var(--accent)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;padding:2px 6px;border-radius:99px;font-family:var(--mono)}
+#sidebar-bottom{padding:16px;border-top:1px solid var(--border)}
+.db-status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success)}
+.status-dot.offline{background:var(--danger);box-shadow:0 0 8px var(--danger)}
+
+/* MAIN */
+#main{margin-left:240px;flex:1;display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:60px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:50}
+.page-title{font-family:var(--display);font-size:20px;letter-spacing:2px;color:var(--text)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:var(--font)}
+.btn-primary{background:var(--accent);color:#0a0c10}
+.btn-primary:hover{background:#d97706}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(239,68,68,.15);color:var(--danger);border:1px solid rgba(239,68,68,.3)}
+.btn-danger:hover{background:var(--danger);color:#fff}
+.btn-success{background:rgba(34,197,94,.15);color:var(--success);border:1px solid rgba(34,197,94,.3)}
+.btn-success:hover{background:var(--success);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn svg{width:14px;height:14px}
+.content{padding:24px;flex:1;overflow-y:auto}
+
+/* PAGE SECTIONS */
+.page{display:none}
+.page.active{display:block}
+
+/* STAT CARDS */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:0;right:0;width:60px;height:100%;opacity:.06}
+.stat-card.amber::before{background:var(--accent)}
+.stat-card.blue::before{background:var(--accent2)}
+.stat-card.red::before{background:var(--danger)}
+.stat-card.green::before{background:var(--success)}
+.stat-label{font-size:11px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.stat-value{font-family:var(--display);font-size:32px;letter-spacing:1px;line-height:1}
+.stat-sub{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* TABLES */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.table-title{font-weight:600;font-size:15px}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 12px}
+.search-box input{background:none;border:none;outline:none;color:var(--text);font-size:13px;width:220px;font-family:var(--font)}
+.search-box svg{color:var(--muted);width:14px;height:14px;flex-shrink:0}
+table{width:100%;border-collapse:collapse}
+thead tr{background:var(--surface2)}
+th{padding:11px 16px;text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap}
+td{padding:12px 16px;border-top:1px solid var(--border);font-size:13px}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.badge-ok{background:rgba(34,197,94,.12);color:var(--success)}
+.badge-low{background:rgba(245,158,11,.12);color:var(--warning)}
+.badge-critical{background:rgba(239,68,68,.12);color:var(--danger)}
+.badge-pending{background:rgba(245,158,11,.12);color:var(--warning)}
+.badge-received{background:rgba(34,197,94,.12);color:var(--success)}
+.badge-sent{background:rgba(59,130,246,.12);color:var(--accent2)}
+.badge-cancelled{background:rgba(100,116,139,.12);color:var(--muted)}
+.part-id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.price{font-family:var(--mono);color:var(--accent)}
+.stock-num{font-family:var(--mono);font-weight:600}
+.low .stock-num{color:var(--danger)}
+.actions{display:flex;gap:6px}
+
+/* FORMS / MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:.2s}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:560px;max-width:calc(100vw - 32px);max-height:90vh;overflow-y:auto;transform:translateY(16px);transition:.2s}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-head{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-head h3{font-weight:600;font-size:16px}
+.modal-close{background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:5px}
+.modal-close:hover{color:var(--text)}
+.modal-body{padding:24px}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/-1}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:.15s}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(245,158,11,.1)}
+.form-group select option{background:var(--surface2)}
+.form-group textarea{resize:vertical;min-height:70px}
+
+/* CHARTS */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.chart-title{font-weight:600;font-size:15px}
+.chart-wrap{position:relative;height:260px}
+
+/* ALERTS */
+.alert-bar{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:var(--radius);padding:12px 16px;display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.alert-bar svg{color:var(--danger);flex-shrink:0;width:16px;height:16px}
+.alert-bar span{font-size:13px;color:var(--danger)}
+
+/* MISC */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px}
+.empty{padding:48px;text-align:center;color:var(--muted);font-size:14px}
+.loading{padding:48px;text-align:center;color:var(--muted)}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filter-row select,.filter-row input{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:7px 12px;color:var(--text);font-size:13px;font-family:var(--font);outline:none}
+.filter-row select:focus,.filter-row input:focus{border-color:var(--accent)}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:13px;display:flex;align-items:center;gap:10px;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideUp .2s ease}
+.toast.success{border-color:rgba(34,197,94,.4);color:var(--success)}
+.toast.error{border-color:rgba(239,68,68,.4);color:var(--danger)}
+.toast.info{border-color:rgba(59,130,246,.4);color:var(--accent2)}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.report-meta{display:flex;gap:24px;margin-bottom:16px;flex-wrap:wrap}
+.report-meta div{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px}
+.report-meta .rm-label{font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+.report-meta .rm-value{font-family:var(--display);font-size:24px;color:var(--accent)}
+@media(max-width:900px){
+  #sidebar{transform:translateX(-100%)}
+  #main{margin-left:0}
+  .two-col,.three-col{grid-template-columns:1fr}
+  .form-grid{grid-template-columns:1fr}
+  .form-grid .full{grid-column:1}
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="logo">
+    <div class="logo-title">MPSS</div>
+    <div class="logo-sub">Motor Part Shop Software</div>
+  </div>
+  <nav>
+    <div class="nav-section">Main</div>
+    <button class="nav-item active" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <div class="nav-section">Inventory</div>
+    <button class="nav-item" onclick="navigate('parts')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+      Parts Inventory
+    </button>
+    <button class="nav-item" onclick="navigate('vendors')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Vendors
+    </button>
+    <div class="nav-section">Operations</div>
+    <button class="nav-item" onclick="navigate('sales')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      Sales
+    </button>
+    <button class="nav-item" onclick="navigate('orders')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+      Orders
+      <span class="nav-badge" id="orders-badge" style="display:none">0</span>
+    </button>
+    <button class="nav-item" onclick="navigate('threshold')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      JIT Threshold
+    </button>
+    <div class="nav-section">Reports</div>
+    <button class="nav-item" onclick="navigate('reports')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Reports
+    </button>
+  </nav>
+  <div id="sidebar-bottom">
+    <div class="db-status">
+      <div class="status-dot" id="db-dot"></div>
+      <span id="db-status-text">Connecting...</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<div id="main">
+  <div class="topbar">
+    <div class="page-title" id="page-title">Dashboard</div>
+    <div class="topbar-right">
+      <button class="btn btn-secondary btn-sm" onclick="refreshPage()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openQuickSale()">+ Quick Sale</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div id="low-stock-alert" style="display:none" class="alert-bar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span id="low-stock-msg"></span>
+      </div>
+      <div class="stats-grid" id="dash-stats">
+        <div class="stat-card amber"><div class="stat-label">Today's Revenue</div><div class="stat-value" id="s-today">—</div><div class="stat-sub">KES</div></div>
+        <div class="stat-card blue"><div class="stat-label">Monthly Revenue</div><div class="stat-value" id="s-month">—</div><div class="stat-sub">KES this month</div></div>
+        <div class="stat-card green"><div class="stat-label">Total Parts</div><div class="stat-value" id="s-parts">—</div><div class="stat-sub">SKUs tracked</div></div>
+        <div class="stat-card red"><div class="stat-label">Inventory Value</div><div class="stat-value" id="s-inv">—</div><div class="stat-sub">KES stock value</div></div>
+      </div>
+      <div class="two-col">
+        <div class="chart-card">
+          <div class="chart-head"><div class="chart-title">Daily Sales — This Month</div></div>
+          <div class="chart-wrap"><canvas id="chart-monthly"></canvas></div>
+        </div>
+        <div>
+          <div class="table-wrap">
+            <div class="table-header"><div class="table-title">⚠ Low Stock Alerts</div><button class="btn btn-secondary btn-sm" onclick="navigate('threshold')">View All</button></div>
+            <table>
+              <thead><tr><th>Part</th><th>Stock</th><th>Threshold</th></tr></thead>
+              <tbody id="low-stock-table"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:20px" class="table-wrap">
+        <div class="table-header"><div class="table-title">Today's Top Sellers</div></div>
+        <table>
+          <thead><tr><th>Part</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+          <tbody id="top-table"><tr><td colspan="3" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PARTS -->
+    <div class="page" id="page-parts">
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Parts Inventory</div>
+          <div class="filter-row">
+            <div class="search-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="parts-search" placeholder="Search parts..." oninput="filterParts()"/>
+            </div>
+            <select id="parts-vehicle-filter" onchange="filterParts()">
+              <option value="">All Vehicles</option>
+              <option>Toyota</option><option>Nissan</option><option>Honda</option>
+              <option>Mazda</option><option>Universal</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openPartModal()">+ Add Part</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th>Part ID</th><th>Part Name</th><th>Vehicle</th><th>Manufacturer</th><th>Vendor</th><th>Price</th><th>Stock</th><th>Rack</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="parts-table"><tr><td colspan="10" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VENDORS -->
+    <div class="page" id="page-vendors">
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Vendors / Suppliers</div>
+          <button class="btn btn-primary btn-sm" onclick="openVendorModal()">+ Add Vendor</button>
+        </div>
+        <table>
+          <thead><tr><th>ID</th><th>Vendor Name</th><th>Contact</th><th>Phone</th><th>Email</th><th>City</th><th>Actions</th></tr></thead>
+          <tbody id="vendors-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SALES -->
+    <div class="page" id="page-sales">
+      <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div class="filter-row">
+          <input type="date" id="sales-start" onchange="loadSales()"/>
+          <input type="date" id="sales-end" onchange="loadSales()"/>
+          <button class="btn btn-secondary btn-sm" onclick="clearSalesFilter()">Clear</button>
+          <button class="btn btn-primary btn-sm" onclick="openSaleModal()">+ Record Sale</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><div class="table-title" id="sales-title">Sales History</div></div>
+        <table>
+          <thead><tr><th>Sale ID</th><th>Date</th><th>Part</th><th>Vehicle</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+          <tbody id="sales-table"><tr><td colspan="7" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ORDERS -->
+    <div class="page" id="page-orders">
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <select id="orders-status-filter" onchange="loadOrders()" class="filter-row" style="padding:7px 12px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:13px;font-family:var(--font)">
+          <option value="">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="sent">Sent</option>
+          <option value="received">Received</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="generateOrders()">⚡ Auto-Generate Orders</button>
+        <button class="btn btn-secondary btn-sm" onclick="loadOrders()">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header"><div class="table-title">Purchase Orders</div></div>
+        <table>
+          <thead><tr><th>Order ID</th><th>Date</th><th>Part</th><th>Vendor</th><th>Qty</th><th>Total Cost</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="orders-table"><tr><td colspan="8" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- JIT THRESHOLD -->
+    <div class="page" id="page-threshold">
+      <div class="alert-bar" style="margin-bottom:16px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>JIT thresholds are based on the last 30 days of sales. Stock is flagged when it falls below the average weekly sales rate.</span>
+      </div>
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">JIT Stock Monitor</div>
+          <button class="btn btn-primary btn-sm" onclick="generateOrders();navigate('orders')">⚡ Generate Orders for Low Stock</button>
+        </div>
+        <table>
+          <thead><tr><th>Part ID</th><th>Part Name</th><th>Vehicle</th><th>Stock</th><th>Weekly Avg</th><th>Threshold</th><th>Order Qty</th><th>Vendor</th><th>Status</th></tr></thead>
+          <tbody id="threshold-table"><tr><td colspan="9" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="page" id="page-reports">
+      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+        <div class="filter-row">
+          <select id="report-type" onchange="loadReport()" style="padding:8px 12px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px">
+            <option value="daily">Daily Report</option>
+            <option value="monthly">Monthly Report</option>
+          </select>
+          <input type="date" id="report-date" onchange="loadReport()"/>
+          <input type="month" id="report-month" onchange="loadReport()" style="display:none"/>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="printReport()">🖨 Print Report</button>
+      </div>
+
+      <div id="report-daily">
+        <div class="report-meta" id="daily-meta"></div>
+        <div class="two-col">
+          <div class="table-wrap">
+            <div class="table-header"><div class="table-title">Transactions</div></div>
+            <table>
+              <thead><tr><th>#</th><th>Part</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+              <tbody id="daily-txn-table"><tr><td colspan="5" class="empty">Select a date</td></tr></tbody>
+            </table>
+          </div>
+          <div>
+            <div class="chart-card">
+              <div class="chart-head"><div class="chart-title">Top Parts Today</div></div>
+              <div class="chart-wrap"><canvas id="chart-daily-top"></canvas></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="report-monthly" style="display:none">
+        <div class="report-meta" id="monthly-meta"></div>
+        <div class="chart-card" style="margin-bottom:20px">
+          <div class="chart-head"><div class="chart-title">Daily Revenue — Month</div></div>
+          <div class="chart-wrap"><canvas id="chart-month-daily"></canvas></div>
+        </div>
+        <div class="table-wrap">
+          <div class="table-header"><div class="table-title">Top Parts This Month</div></div>
+          <table>
+            <thead><tr><th>Part</th><th>Vehicle</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+            <tbody id="monthly-parts-table"><tr><td colspan="4" class="empty">Select a month</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODALS -->
+
+<!-- Part Modal -->
+<div class="modal-overlay" id="modal-part">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="part-modal-title">Add Part</h3>
+      <button class="modal-close" onclick="closeModal('modal-part')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Part ID*</label><input id="f-part-id" placeholder="P001"/></div>
+        <div class="form-group"><label>Part Name*</label><input id="f-part-name" placeholder="Engine Oil Filter"/></div>
+        <div class="form-group"><label>Vehicle Type*</label>
+          <select id="f-vehicle-type">
+            <option>Toyota</option><option>Nissan</option><option>Honda</option>
+            <option>Mazda</option><option>Mitsubishi</option><option>Subaru</option>
+            <option>Isuzu</option><option>Ford</option><option>Universal</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Manufacturer*</label><input id="f-manufacturer" placeholder="Denso"/></div>
+        <div class="form-group"><label>Vendor</label>
+          <select id="f-vendor-id"><option value="">— Select Vendor —</option></select>
+        </div>
+        <div class="form-group"><label>Price (KES)*</label><input type="number" id="f-price" placeholder="1500"/></div>
+        <div class="form-group"><label>Current Stock*</label><input type="number" id="f-stock" placeholder="10"/></div>
+        <div class="form-group"><label>Rack Number</label><input id="f-rack" placeholder="A1"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-part')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePart()">Save Part</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vendor Modal -->
+<div class="modal-overlay" id="modal-vendor">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="vendor-modal-title">Add Vendor</h3>
+      <button class="modal-close" onclick="closeModal('modal-vendor')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Vendor ID*</label><input id="f-vid" placeholder="V006"/></div>
+        <div class="form-group"><label>Vendor Name*</label><input id="f-vname" placeholder="AutoParts Co."/></div>
+        <div class="form-group"><label>Contact Person</label><input id="f-vcontact" placeholder="Jane Doe"/></div>
+        <div class="form-group"><label>Phone</label><input id="f-vphone" placeholder="+254 7xx xxx xxx"/></div>
+        <div class="form-group full"><label>Email</label><input id="f-vemail" placeholder="contact@vendor.com"/></div>
+        <div class="form-group full"><label>Address</label><textarea id="f-vaddress" placeholder="Street, Area"></textarea></div>
+        <div class="form-group"><label>City</label><input id="f-vcity" placeholder="Nairobi"/></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-vendor')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVendor()">Save Vendor</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sale Modal -->
+<div class="modal-overlay" id="modal-sale">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Record Sale</h3>
+      <button class="modal-close" onclick="closeModal('modal-sale')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Part*</label>
+          <select id="f-sale-part" onchange="fillSalePrice()">
+            <option value="">— Select Part —</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Quantity*</label><input type="number" id="f-sale-qty" placeholder="1" min="1" oninput="calcSaleTotal()"/></div>
+        <div class="form-group"><label>Unit Price (KES)*</label><input type="number" id="f-sale-price" placeholder="0" oninput="calcSaleTotal()"/></div>
+        <div class="form-group"><label>Sale Date</label><input type="date" id="f-sale-date"/></div>
+        <div class="form-group"><label>Total</label><input type="text" id="f-sale-total" readonly style="color:var(--accent);font-family:var(--mono)"/></div>
+      </div>
+      <div id="sale-stock-info" style="margin-top:12px;font-size:13px;color:var(--muted)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modal-sale')">Cancel</button>
+      <button class="btn btn-primary" onclick="recordSale()">Record Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── State ────────────────────────────────────────────────────────────────────
+let allParts = [];
+let allVendors = [];
+let editingPartId = null;
+let editingVendorId = null;
+let chartMonthly = null;
+let chartDailyTop = null;
+let chartMonthDaily = null;
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const pageTitles = {
+  dashboard: 'Dashboard', parts: 'Parts Inventory',
+  vendors: 'Vendors & Suppliers', sales: 'Sales Management',
+  orders: 'Purchase Orders', threshold: 'JIT Threshold Monitor',
+  reports: 'Reports'
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + page + "'")) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = pageTitles[page] || page;
+  loadPage(page);
+}
+
+function loadPage(page) {
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'parts') loadParts();
+  else if (page === 'vendors') loadVendors();
+  else if (page === 'sales') loadSales();
+  else if (page === 'orders') loadOrders();
+  else if (page === 'threshold') loadThreshold();
+  else if (page === 'reports') { setupReportPage(); loadReport(); }
+}
+
+function refreshPage() {
+  const active = document.querySelector('.page.active');
+  if (active) loadPage(active.id.replace('page-', ''));
+}
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  try {
+    const opts = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    const r = await fetch(API + path, opts);
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      throw new Error(e.detail || 'Request failed');
+    }
+    return await r.json();
+  } catch (err) {
+    toast(err.message, 'error');
+    throw err;
+  }
+}
+
+// ── Health check ─────────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    await fetch(API + '/health');
+    document.getElementById('db-dot').classList.remove('offline');
+    document.getElementById('db-status-text').textContent = 'Database connected';
+  } catch {
+    document.getElementById('db-dot').classList.add('offline');
+    document.getElementById('db-status-text').textContent = 'Offline (demo mode)';
+    loadDemoData();
+  }
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  try {
+    const d = await api('GET', '/dashboard');
+    document.getElementById('s-today').textContent = fmtK(d.today_revenue);
+    document.getElementById('s-month').textContent = fmtK(d.month_revenue);
+    document.getElementById('s-parts').textContent = d.total_parts;
+    document.getElementById('s-inv').textContent = fmtK(d.inventory_value);
+
+    if (d.low_stock_count > 0) {
+      document.getElementById('low-stock-alert').style.display = 'flex';
+      document.getElementById('low-stock-msg').textContent = `${d.low_stock_count} part(s) are below their JIT threshold — reorder required.`;
+    }
+
+    const badge = document.getElementById('orders-badge');
+    if (d.pending_orders > 0) {
+      badge.textContent = d.pending_orders;
+      badge.style.display = '';
+    } else badge.style.display = 'none';
+
+    // Low stock table
+    const lst = document.getElementById('low-stock-table');
+    if (!d.low_stock_parts.length) {
+      lst.innerHTML = '<tr><td colspan="3" class="empty">✓ All stocks are healthy</td></tr>';
+    } else {
+      lst.innerHTML = d.low_stock_parts.map(p =>
+        `<tr class="low"><td>${p.part_name}<br><span class="part-id">${p.part_id}</span></td>
+         <td><span class="stock-num">${p.current_stock}</span></td>
+         <td>${Math.round(p.weekly_avg)} / wk</td></tr>`
+      ).join('');
+    }
+
+    // Top sellers
+    const tt = document.getElementById('top-table');
+    if (!d.top_sellers_today.length) {
+      tt.innerHTML = '<tr><td colspan="3" class="empty">No sales recorded today yet</td></tr>';
+    } else {
+      tt.innerHTML = d.top_sellers_today.map(p =>
+        `<tr><td>${p.part_name}</td><td class="stock-num">${p.qty}</td>
+         <td class="price">KES ${fmtNum(p.rev)}</td></tr>`
+      ).join('');
+    }
+
+    // Monthly chart
+    loadMonthlyChart();
+  } catch {}
+}
+
+async function loadMonthlyChart() {
+  try {
+    const today = new Date();
+    const d = await api('GET', `/reports/monthly?year=${today.getFullYear()}&month=${today.getMonth()+1}`);
+    const labels = d.daily_breakdown.map(x => x.sale_date.slice(5));
+    const data = d.daily_breakdown.map(x => x.revenue);
+
+    const ctx = document.getElementById('chart-monthly').getContext('2d');
+    if (chartMonthly) chartMonthly.destroy();
+    chartMonthly = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Revenue (KES)',
+          data,
+          backgroundColor: 'rgba(245,158,11,0.6)',
+          borderColor: '#f59e0b',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: chartOpts('Revenue (KES)')
+    });
+  } catch {}
+}
+
+// ── PARTS ─────────────────────────────────────────────────────────────────────
+async function loadParts() {
+  try {
+    allParts = await api('GET', '/parts');
+    renderParts(allParts);
+    populatePartSelects();
+  } catch {}
+}
+
+function renderParts(parts) {
+  const tb = document.getElementById('parts-table');
+  if (!parts.length) { tb.innerHTML = '<tr><td colspan="10" class="empty">No parts found</td></tr>'; return; }
+  tb.innerHTML = parts.map(p => {
+    const status = p.low_stock ? (p.current_stock <= 2 ? 'critical' : 'low') : 'ok';
+    const statusLabel = status === 'ok' ? 'In Stock' : status === 'low' ? 'Low Stock' : 'Critical';
+    return `<tr>
+      <td class="part-id">${p.part_id}</td>
+      <td><strong>${p.part_name}</strong></td>
+      <td>${p.vehicle_type}</td>
+      <td>${p.manufacturer}</td>
+      <td>${p.vendor_name || '—'}</td>
+      <td class="price">KES ${fmtNum(p.price)}</td>
+      <td class="${status === 'ok' ? '' : 'low'}"><span class="stock-num">${p.current_stock}</span></td>
+      <td class="part-id">${p.rack_number || '—'}</td>
+      <td><span class="badge badge-${status}">${statusLabel}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="openPartModal('${p.part_id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deletePart('${p.part_id}')">Del</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterParts() {
+  const s = document.getElementById('parts-search').value.toLowerCase();
+  const v = document.getElementById('parts-vehicle-filter').value;
+  const filtered = allParts.filter(p =>
+    (!s || p.part_name.toLowerCase().includes(s) || p.part_id.toLowerCase().includes(s) || p.manufacturer?.toLowerCase().includes(s)) &&
+    (!v || p.vehicle_type === v)
+  );
+  renderParts(filtered);
+}
+
+async function openPartModal(partId = null) {
+  editingPartId = partId;
+  document.getElementById('part-modal-title').textContent = partId ? 'Edit Part' : 'Add Part';
+  await populateVendorSelect('f-vendor-id');
+
+  if (partId) {
+    try {
+      const p = await api('GET', '/parts/' + partId);
+      document.getElementById('f-part-id').value = p.part_id;
+      document.getElementById('f-part-id').disabled = true;
+      document.getElementById('f-part-name').value = p.part_name;
+      document.getElementById('f-vehicle-type').value = p.vehicle_type;
+      document.getElementById('f-manufacturer').value = p.manufacturer;
+      document.getElementById('f-vendor-id').value = p.vendor_id || '';
+      document.getElementById('f-price').value = p.price;
+      document.getElementById('f-stock').value = p.current_stock;
+      document.getElementById('f-rack').value = p.rack_number || '';
+    } catch { return; }
+  } else {
+    ['f-part-id','f-part-name','f-manufacturer','f-price','f-stock','f-rack'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('f-part-id').disabled = false;
+    document.getElementById('f-vendor-id').value = '';
+  }
+  openModal('modal-part');
+}
+
+async function savePart() {
+  const body = {
+    part_id: document.getElementById('f-part-id').value.trim(),
+    part_name: document.getElementById('f-part-name').value.trim(),
+    vehicle_type: document.getElementById('f-vehicle-type').value,
+    manufacturer: document.getElementById('f-manufacturer').value.trim(),
+    vendor_id: document.getElementById('f-vendor-id').value || null,
+    price: parseFloat(document.getElementById('f-price').value),
+    current_stock: parseInt(document.getElementById('f-stock').value),
+    rack_number: document.getElementById('f-rack').value.trim() || null
+  };
+  if (!body.part_id || !body.part_name) return toast('Part ID and Name are required', 'error');
+  try {
+    if (editingPartId) {
+      await api('PUT', '/parts/' + editingPartId, { part_name: body.part_name, vehicle_type: body.vehicle_type, manufacturer: body.manufacturer, vendor_id: body.vendor_id, price: body.price, current_stock: body.current_stock, rack_number: body.rack_number });
+    } else {
+      await api('POST', '/parts', body);
+    }
+    toast(editingPartId ? 'Part updated' : 'Part added', 'success');
+    closeModal('modal-part');
+    loadParts();
+  } catch {}
+}
+
+async function deletePart(partId) {
+  if (!confirm(`Delete part ${partId}?`)) return;
+  try {
+    await api('DELETE', '/parts/' + partId);
+    toast('Part deleted', 'success');
+    loadParts();
+  } catch {}
+}
+
+// ── VENDORS ───────────────────────────────────────────────────────────────────
+async function loadVendors() {
+  try {
+    allVendors = await api('GET', '/vendors');
+    renderVendors(allVendors);
+  } catch {}
+}
+
+function renderVendors(vendors) {
+  const tb = document.getElementById('vendors-table');
+  if (!vendors.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No vendors</td></tr>'; return; }
+  tb.innerHTML = vendors.map(v => `
+    <tr>
+      <td class="part-id">${v.vendor_id}</td>
+      <td><strong>${v.vendor_name}</strong></td>
+      <td>${v.contact_person || '—'}</td>
+      <td>${v.phone || '—'}</td>
+      <td>${v.email || '—'}</td>
+      <td>${v.city || '—'}</td>
+      <td><div class="actions">
+        <button class="btn btn-secondary btn-sm" onclick="openVendorModal('${v.vendor_id}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteVendor('${v.vendor_id}')">Del</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+async function openVendorModal(vendorId = null) {
+  editingVendorId = vendorId;
+  document.getElementById('vendor-modal-title').textContent = vendorId ? 'Edit Vendor' : 'Add Vendor';
+  if (vendorId) {
+    const v = allVendors.find(x => x.vendor_id === vendorId);
+    if (v) {
+      document.getElementById('f-vid').value = v.vendor_id;
+      document.getElementById('f-vid').disabled = true;
+      document.getElementById('f-vname').value = v.vendor_name;
+      document.getElementById('f-vcontact').value = v.contact_person || '';
+      document.getElementById('f-vphone').value = v.phone || '';
+      document.getElementById('f-vemail').value = v.email || '';
+      document.getElementById('f-vaddress').value = v.address || '';
+      document.getElementById('f-vcity').value = v.city || '';
+    }
+  } else {
+    ['f-vid','f-vname','f-vcontact','f-vphone','f-vemail','f-vaddress','f-vcity'].forEach(id => {
+      document.getElementById(id).value = '';
+      document.getElementById(id).disabled = false;
+    });
+  }
+  openModal('modal-vendor');
+}
+
+async function saveVendor() {
+  const body = {
+    vendor_id: document.getElementById('f-vid').value.trim(),
+    vendor_name: document.getElementById('f-vname').value.trim(),
+    contact_person: document.getElementById('f-vcontact').value.trim() || null,
+    phone: document.getElementById('f-vphone').value.trim() || null,
+    email: document.getElementById('f-vemail').value.trim() || null,
+    address: document.getElementById('f-vaddress').value.trim() || null,
+    city: document.getElementById('f-vcity').value.trim() || null
+  };
+  if (!body.vendor_id || !body.vendor_name) return toast('Vendor ID and Name are required', 'error');
+  try {
+    if (editingVendorId) {
+      await api('PUT', '/vendors/' + editingVendorId, { vendor_name: body.vendor_name, contact_person: body.contact_person, phone: body.phone, email: body.email, address: body.address, city: body.city });
+    } else {
+      await api('POST', '/vendors', body);
+    }
+    toast(editingVendorId ? 'Vendor updated' : 'Vendor added', 'success');
+    closeModal('modal-vendor');
+    loadVendors();
+  } catch {}
+}
+
+async function deleteVendor(id) {
+  if (!confirm(`Delete vendor ${id}?`)) return;
+  try {
+    await api('DELETE', '/vendors/' + id);
+    toast('Vendor deleted', 'success');
+    loadVendors();
+  } catch {}
+}
+
+// ── SALES ─────────────────────────────────────────────────────────────────────
+async function loadSales() {
+  const s = document.getElementById('sales-start').value;
+  const e = document.getElementById('sales-end').value;
+  let path = '/sales?';
+  if (s) path += `start_date=${s}&`;
+  if (e) path += `end_date=${e}&`;
+  try {
+    const sales = await api('GET', path);
+    const tb = document.getElementById('sales-table');
+    if (!sales.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No sales in this period</td></tr>'; return; }
+    tb.innerHTML = sales.map(s => `
+      <tr>
+        <td class="part-id">#${s.sale_id}</td>
+        <td>${s.sale_date}</td>
+        <td>${s.part_name}</td>
+        <td>${s.vehicle_type}</td>
+        <td class="stock-num">${s.quantity}</td>
+        <td class="price">KES ${fmtNum(s.unit_price)}</td>
+        <td class="price">KES ${fmtNum(s.total_price)}</td>
+      </tr>`).join('');
+    const total = sales.reduce((a, b) => a + parseFloat(b.total_price), 0);
+    document.getElementById('sales-title').textContent = `Sales History — ${sales.length} transactions · KES ${fmtNum(total)}`;
+  } catch {}
+}
+
+function clearSalesFilter() {
+  document.getElementById('sales-start').value = '';
+  document.getElementById('sales-end').value = '';
+  loadSales();
+}
+
+function openQuickSale() { navigate('sales'); openSaleModal(); }
+
+async function openSaleModal() {
+  if (!allParts.length) allParts = await api('GET', '/parts').catch(() => []);
+  const sel = document.getElementById('f-sale-part');
+  sel.innerHTML = '<option value="">— Select Part —</option>' +
+    allParts.map(p => `<option value="${p.part_id}" data-price="${p.price}" data-stock="${p.current_stock}">${p.part_id} — ${p.part_name} (Stock: ${p.current_stock})</option>`).join('');
+  document.getElementById('f-sale-qty').value = '1';
+  document.getElementById('f-sale-price').value = '';
+  document.getElementById('f-sale-total').value = '';
+  document.getElementById('f-sale-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('sale-stock-info').textContent = '';
+  openModal('modal-sale');
+}
+
+function fillSalePrice() {
+  const sel = document.getElementById('f-sale-part');
+  const opt = sel.selectedOptions[0];
+  if (opt && opt.dataset.price) {
+    document.getElementById('f-sale-price').value = opt.dataset.price;
+    document.getElementById('sale-stock-info').textContent = `Available stock: ${opt.dataset.stock} units`;
+    calcSaleTotal();
+  }
+}
+
+function calcSaleTotal() {
+  const qty = parseFloat(document.getElementById('f-sale-qty').value) || 0;
+  const price = parseFloat(document.getElementById('f-sale-price').value) || 0;
+  document.getElementById('f-sale-total').value = `KES ${fmtNum(qty * price)}`;
+}
+
+async function recordSale() {
+  const body = {
+    part_id: document.getElementById('f-sale-part').value,
+    quantity: parseInt(document.getElementById('f-sale-qty').value),
+    unit_price: parseFloat(document.getElementById('f-sale-price').value),
+    sale_date: document.getElementById('f-sale-date').value || null
+  };
+  if (!body.part_id || !body.quantity || !body.unit_price) return toast('Fill all required fields', 'error');
+  try {
+    await api('POST', '/sales', body);
+    toast('Sale recorded successfully', 'success');
+    closeModal('modal-sale');
+    allParts = await api('GET', '/parts').catch(() => allParts);
+    if (document.getElementById('page-sales').classList.contains('active')) loadSales();
+  } catch {}
+}
+
+// ── ORDERS ────────────────────────────────────────────────────────────────────
+async function loadOrders() {
+  const status = document.getElementById('orders-status-filter')?.value || '';
+  let path = '/orders?';
+  if (status) path += `status=${status}`;
+  try {
+    const orders = await api('GET', path);
+    const tb = document.getElementById('orders-table');
+    if (!orders.length) { tb.innerHTML = '<tr><td colspan="8" class="empty">No orders found</td></tr>'; return; }
+    tb.innerHTML = orders.map(o => `
+      <tr>
+        <td class="part-id">#${o.order_id}</td>
+        <td>${o.order_date}</td>
+        <td>${o.part_name}<br><span class="part-id">${o.part_id}</span></td>
+        <td>${o.vendor_name || '—'}</td>
+        <td class="stock-num">${o.quantity_ordered}</td>
+        <td class="price">KES ${fmtNum(o.total_cost || 0)}</td>
+        <td><span class="badge badge-${o.status}">${o.status}</span></td>
+        <td><div class="actions">
+          ${o.status === 'pending' ? `<button class="btn btn-success btn-sm" onclick="markOrder(${o.order_id},'sent')">Send</button>` : ''}
+          ${o.status === 'sent' ? `<button class="btn btn-success btn-sm" onclick="markOrder(${o.order_id},'received')">Receive</button>` : ''}
+          ${['pending','sent'].includes(o.status) ? `<button class="btn btn-danger btn-sm" onclick="markOrder(${o.order_id},'cancelled')">Cancel</button>` : ''}
+        </div></td>
+      </tr>`).join('');
+  } catch {}
+}
+
+async function markOrder(id, status) {
+  try {
+    await api('PUT', '/orders/' + id, { status });
+    toast(`Order marked as ${status}`, 'success');
+    loadOrders();
+    if (status === 'received') { allParts = await api('GET', '/parts').catch(() => allParts); }
+  } catch {}
+}
+
+async function generateOrders() {
+  try {
+    const r = await api('POST', '/orders/generate');
+    toast(r.message, r.orders_created > 0 ? 'success' : 'info');
+    if (document.getElementById('page-orders').classList.contains('active')) loadOrders();
+  } catch {}
+}
+
+// ── THRESHOLD ─────────────────────────────────────────────────────────────────
+async function loadThreshold() {
+  try {
+    const data = await api('GET', '/threshold');
+    const tb = document.getElementById('threshold-table');
+    if (!data.length) { tb.innerHTML = '<tr><td colspan="9" class="empty">No data</td></tr>'; return; }
+    tb.innerHTML = data.map(p => `
+      <tr>
+        <td class="part-id">${p.part_id}</td>
+        <td><strong>${p.part_name}</strong></td>
+        <td>${p.vehicle_type}</td>
+        <td class="${p.status !== 'ok' ? 'low' : ''}"><span class="stock-num">${p.current_stock}</span></td>
+        <td class="part-id">${p.weekly_avg}</td>
+        <td class="part-id">${p.threshold}</td>
+        <td class="stock-num ${p.order_qty > 0 ? '' : ''}">${p.order_qty > 0 ? p.order_qty : '—'}</td>
+        <td>${p.vendor_name || '—'}</td>
+        <td><span class="badge badge-${p.status === 'ok' ? 'ok' : p.status === 'critical' ? 'critical' : 'low'}">${p.status.toUpperCase()}</span></td>
+      </tr>`).join('');
+  } catch {}
+}
+
+// ── REPORTS ───────────────────────────────────────────────────────────────────
+function setupReportPage() {
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('report-date').value = today;
+  const ym = today.slice(0, 7);
+  document.getElementById('report-month').value = ym;
+}
+
+function loadReport() {
+  const type = document.getElementById('report-type').value;
+  document.getElementById('report-daily').style.display = type === 'daily' ? '' : 'none';
+  document.getElementById('report-monthly').style.display = type === 'monthly' ? '' : 'none';
+  document.getElementById('report-date').style.display = type === 'daily' ? '' : 'none';
+  document.getElementById('report-month').style.display = type === 'monthly' ? '' : 'none';
+  if (type === 'daily') loadDailyReport();
+  else loadMonthlyReport();
+}
+
+async function loadDailyReport() {
+  const d = document.getElementById('report-date').value;
+  if (!d) return;
+  try {
+    const r = await api('GET', `/reports/daily?report_date=${d}`);
+    document.getElementById('daily-meta').innerHTML = `
+      <div><div class="rm-label">Date</div><div style="font-size:16px;font-weight:600;margin-top:4px">${r.date}</div></div>
+      <div><div class="rm-label">Revenue</div><div class="rm-value">KES ${fmtNum(r.total_revenue)}</div></div>
+      <div><div class="rm-label">Units Sold</div><div class="rm-value">${r.total_units_sold}</div></div>
+      <div><div class="rm-label">Transactions</div><div class="rm-value">${r.total_transactions}</div></div>`;
+
+    const tb = document.getElementById('daily-txn-table');
+    if (!r.transactions.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="empty">No sales on this date</td></tr>';
+    } else {
+      tb.innerHTML = r.transactions.map(t => `
+        <tr><td class="part-id">#${t.sale_id}</td><td>${t.part_name}</td>
+        <td>${t.quantity}</td><td class="price">KES ${fmtNum(t.unit_price)}</td>
+        <td class="price">KES ${fmtNum(t.total_price)}</td></tr>`).join('');
+    }
+
+    // Chart
+    const ctx = document.getElementById('chart-daily-top').getContext('2d');
+    if (chartDailyTop) chartDailyTop.destroy();
+    if (r.top_parts.length) {
+      chartDailyTop = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: r.top_parts.map(x => x.part_name.slice(0, 20)),
+          datasets: [{ data: r.top_parts.map(x => x.revenue), backgroundColor: ['#f59e0b','#3b82f6','#22c55e','#ef4444','#8b5cf6'], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e2e8f0', font: { size: 11 } } } } }
+      });
+    }
+  } catch {}
+}
+
+async function loadMonthlyReport() {
+  const val = document.getElementById('report-month').value;
+  if (!val) return;
+  const [y, m] = val.split('-');
+  try {
+    const r = await api('GET', `/reports/monthly?year=${y}&month=${m}`);
+    document.getElementById('monthly-meta').innerHTML = `
+      <div><div class="rm-label">Period</div><div style="font-size:15px;font-weight:600;margin-top:4px">${val}</div></div>
+      <div><div class="rm-label">Revenue</div><div class="rm-value">KES ${fmtK(r.total_revenue)}</div></div>
+      <div><div class="rm-label">Units Sold</div><div class="rm-value">${r.total_units_sold}</div></div>
+      <div><div class="rm-label">Transactions</div><div class="rm-value">${r.total_transactions}</div></div>`;
+
+    // Chart
+    const ctx = document.getElementById('chart-month-daily').getContext('2d');
+    if (chartMonthDaily) chartMonthDaily.destroy();
+    chartMonthDaily = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: r.daily_breakdown.map(x => x.sale_date.slice(5)),
+        datasets: [{
+          label: 'Daily Revenue (KES)',
+          data: r.daily_breakdown.map(x => x.revenue),
+          borderColor: '#f59e0b',
+          backgroundColor: 'rgba(245,158,11,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: '#f59e0b',
+          pointRadius: 4
+        }]
+      },
+      options: chartOpts('Revenue (KES)')
+    });
+
+    // Top parts table
+    const tb = document.getElementById('monthly-parts-table');
+    if (!r.top_parts.length) {
+      tb.innerHTML = '<tr><td colspan="4" class="empty">No sales this month</td></tr>';
+    } else {
+      tb.innerHTML = r.top_parts.map(p => `
+        <tr><td><strong>${p.part_name}</strong></td><td>${p.vehicle_type}</td>
+        <td class="stock-num">${p.units_sold}</td><td class="price">KES ${fmtNum(p.revenue)}</td></tr>`
+      ).join('');
+    }
+  } catch {}
+}
+
+function printReport() { window.print(); }
+
+// ── Chart default options ─────────────────────────────────────────────────────
+function chartOpts(yLabel) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#64748b', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: false } }
+    }
+  };
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function fmtNum(n) { return parseFloat(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
+function fmtK(n) { n = parseFloat(n || 0); if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n.toFixed(0); }
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+async function populateVendorSelect(selectId) {
+  if (!allVendors.length) allVendors = await api('GET', '/vendors').catch(() => []);
+  const sel = document.getElementById(selectId);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Select Vendor —</option>' + allVendors.map(v => `<option value="${v.vendor_id}">${v.vendor_id} — ${v.vendor_name}</option>`).join('');
+  if (cur) sel.value = cur;
+}
+
+function populatePartSelects() {
+  // Part select for sale modal is populated on open
+}
+
+function toast(msg, type = 'info') {
+  const wrap = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const icons = { success: '✓', error: '✕', info: 'ℹ' };
+  el.innerHTML = `<span>${icons[type] || '•'}</span> ${msg}`;
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Demo mode (no backend) ────────────────────────────────────────────────────
+function loadDemoData() {
+  // Populate dashboard with static demo when API not available
+  document.getElementById('s-today').textContent = '18.4K';
+  document.getElementById('s-month').textContent = '342K';
+  document.getElementById('s-parts').textContent = '15';
+  document.getElementById('s-inv').textContent = '1.2M';
+  document.getElementById('low-stock-alert').style.display = 'flex';
+  document.getElementById('low-stock-msg').textContent = 'Demo mode: connect the FastAPI backend for live data.';
+  const lst = document.getElementById('low-stock-table');
+  lst.innerHTML = `
+    <tr class="low"><td>Alternator Belt<br><span class="part-id">P003</span></td><td><span class="stock-num">8</span></td><td>10 / wk</td></tr>
+    <tr class="low"><td>Fuel Pump<br><span class="part-id">P007</span></td><td><span class="stock-num">4</span></td><td>6 / wk</td></tr>
+    <tr class="low"><td>Power Steering Pump<br><span class="part-id">P015</span></td><td><span class="stock-num">3</span></td><td>5 / wk</td></tr>`;
+  document.getElementById('top-table').innerHTML = `
+    <tr><td>Engine Oil Filter</td><td class="stock-num">5</td><td class="price">KES 4,250</td></tr>
+    <tr><td>Spark Plugs (Set)</td><td class="stock-num">2</td><td class="price">KES 3,600</td></tr>`;
+  toast('Running in demo mode — backend not connected', 'info');
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+checkHealth();
+loadDashboard();
+</script>
+</body>
+</html>
