@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mpss-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: mpss_root_2024
+      MYSQL_DATABASE: mpss
+      MYSQL_USER: mpss_user
+      MYSQL_PASSWORD: mpss_pass_2024
+    volumes:
+      - mpss_data:/var/lib/mysql
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    container_name: mpss-api
+    restart: unless-stopped
+    environment:
+      DB_HOST: mysql
+      DB_USER: mpss_user
+      DB_PASSWORD: mpss_pass_2024
+      DB_NAME: mpss
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    image: nginx:alpine
+    container_name: mpss-frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  mpss_data:
