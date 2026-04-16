@@ -29,7 +29,7 @@ app.add_middleware(
 
 # ─── Database Configuration ───────────────────────────────────────────────────
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "127.0.0.1"),
+    "host": os.getenv("DB_HOST", "localhost"),
     "user": os.getenv("DB_USER", "root"),
     "password": os.getenv("DB_PASSWORD", ""),
     "database": os.getenv("DB_NAME", "mpss"),
@@ -349,15 +349,19 @@ def get_threshold_report():
     with get_db() as conn:
         c = dict_cursor(conn)
         c.execute("""
-            SELECT p.part_id, p.part_name, p.vehicle_type, p.manufacturer,
-                   p.current_stock, p.price, p.rack_number,
-                   v.vendor_name, v.address as vendor_address, v.phone as vendor_phone,
-                   COALESCE(ROUND(SUM(s.quantity)/NULLIF(DATEDIFF(MAX(s.sale_date),MIN(s.sale_date))+1,0)*7,1),0) AS weekly_avg
-            FROM parts p
-            LEFT JOIN vendors v ON p.vendor_id = v.vendor_id
-            LEFT JOIN sales s ON p.part_id = s.part_id AND s.sale_date >= CURDATE()-INTERVAL 30 DAY
-            GROUP BY p.part_id
-            ORDER BY (p.current_stock - COALESCE(weekly_avg,0)) ASC
+            SELECT * FROM (
+                SELECT p.part_id, p.part_name, p.vehicle_type, p.manufacturer,
+                       p.current_stock, p.price, p.rack_number,
+                       v.vendor_name, v.address as vendor_address, v.phone as vendor_phone,
+                       COALESCE(ROUND(SUM(s.quantity)/NULLIF(DATEDIFF(MAX(s.sale_date),MIN(s.sale_date))+1,0)*7,1),0) AS weekly_avg
+                FROM parts p
+                LEFT JOIN vendors v ON p.vendor_id = v.vendor_id
+                LEFT JOIN sales s ON p.part_id = s.part_id AND s.sale_date >= CURDATE()-INTERVAL 30 DAY
+                GROUP BY p.part_id, p.part_name, p.vehicle_type, p.manufacturer,
+                         p.current_stock, p.price, p.rack_number,
+                         v.vendor_name, v.address, v.phone
+            ) AS sub
+            ORDER BY (sub.current_stock - sub.weekly_avg) ASC
         """)
         rows = c.fetchall()
         result = []
@@ -544,4 +548,4 @@ def daily_order_report(report_date: Optional[date] = None):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000) 
