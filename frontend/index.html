@@ -412,12 +412,10 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </div>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
+  </div>
+</div>
 
-<!-- MODALS -->
 
-<!-- Part Modal -->
 <div class="modal-overlay" id="modal-part">
   <div class="modal">
     <div class="modal-head">
@@ -511,7 +509,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 const API = 'http://localhost:8000';
 
-// ── State ────────────────────────────────────────────────────────────────────
+
 let allParts = [];
 let allVendors = [];
 let editingPartId = null;
@@ -520,7 +518,7 @@ let chartMonthly = null;
 let chartDailyTop = null;
 let chartMonthDaily = null;
 
-// ── Navigation ────────────────────────────────────────────────────────────────
+
 const pageTitles = {
   dashboard: 'Dashboard', parts: 'Parts Inventory',
   vendors: 'Vendors & Suppliers', sales: 'Sales Management',
@@ -554,7 +552,7 @@ function refreshPage() {
   if (active) loadPage(active.id.replace('page-', ''));
 }
 
-// ── API helpers ───────────────────────────────────────────────────────────────
+
 async function api(method, path, body) {
   try {
     const opts = { method, headers: { 'Content-Type': 'application/json' } };
@@ -571,7 +569,7 @@ async function api(method, path, body) {
   }
 }
 
-// ── Health check ─────────────────────────────────────────────────────────────
+
 async function checkHealth() {
   try {
     await fetch(API + '/health');
@@ -584,7 +582,7 @@ async function checkHealth() {
   }
 }
 
-// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+
 async function loadDashboard() {
   try {
     const d = await api('GET', '/dashboard');
@@ -659,7 +657,7 @@ async function loadMonthlyChart() {
   } catch {}
 }
 
-// ── PARTS ─────────────────────────────────────────────────────────────────────
+
 async function loadParts() {
   try {
     allParts = await api('GET', '/parts');
@@ -761,7 +759,7 @@ async function deletePart(partId) {
   } catch {}
 }
 
-// ── VENDORS ───────────────────────────────────────────────────────────────────
+
 async function loadVendors() {
   try {
     allVendors = await api('GET', '/vendors');
@@ -843,7 +841,7 @@ async function deleteVendor(id) {
   } catch {}
 }
 
-// ── SALES ─────────────────────────────────────────────────────────────────────
+
 async function loadSales() {
   const s = document.getElementById('sales-start').value;
   const e = document.getElementById('sales-end').value;
@@ -923,7 +921,7 @@ async function recordSale() {
   } catch {}
 }
 
-// ── ORDERS ────────────────────────────────────────────────────────────────────
+
 async function loadOrders() {
   const status = document.getElementById('orders-status-filter')?.value || '';
   let path = '/orders?';
@@ -967,7 +965,7 @@ async function generateOrders() {
   } catch {}
 }
 
-// ── THRESHOLD ─────────────────────────────────────────────────────────────────
+
 async function loadThreshold() {
   try {
     const data = await api('GET', '/threshold');
@@ -988,7 +986,7 @@ async function loadThreshold() {
   } catch {}
 }
 
-// ── REPORTS ───────────────────────────────────────────────────────────────────
+
 function setupReportPage() {
   const today = new Date().toISOString().slice(0, 10);
   document.getElementById('report-date').value = today;
@@ -1091,7 +1089,6 @@ async function loadMonthlyReport() {
 
 function printReport() { window.print(); }
 
-// ── Chart default options ─────────────────────────────────────────────────────
 function chartOpts(yLabel) {
   return {
     responsive: true, maintainAspectRatio: false,
@@ -1103,7 +1100,6 @@ function chartOpts(yLabel) {
   };
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function fmtNum(n) { return parseFloat(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); }
 function fmtK(n) { n = parseFloat(n || 0); if (n >= 1e6) return (n/1e6).toFixed(1)+'M'; if (n >= 1e3) return (n/1e3).toFixed(1)+'K'; return n.toFixed(0); }
 
@@ -1136,9 +1132,8 @@ function toast(msg, type = 'info') {
   setTimeout(() => el.remove(), 3500);
 }
 
-// ── Demo mode (no backend) ────────────────────────────────────────────────────
 function loadDemoData() {
-  // Populate dashboard with static demo when API not available
+  
   document.getElementById('s-today').textContent = '18.4K';
   document.getElementById('s-month').textContent = '342K';
   document.getElementById('s-parts').textContent = '15';
@@ -1156,7 +1151,6 @@ function loadDemoData() {
   toast('Running in demo mode — backend not connected', 'info');
 }
 
-// ── Init ─────────────────────────────────────────────────────────────────────
 checkHealth();
 loadDashboard();
 </script>
