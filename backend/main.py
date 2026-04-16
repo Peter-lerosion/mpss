@@ -1,17 +1,23 @@
 """
 Motor Part Shop Software (MPSS) - FastAPI Backend
-Run: uvicorn main:app --reload --port 8000
+Run: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
 """
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import date, datetime, timedelta
 import mysql.connector
 import os
+from pathlib import Path
 from contextlib import contextmanager
+
+# Resolve frontend directory relative to this file
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 app = FastAPI(
     title="Motor Part Shop Software (MPSS)",
@@ -26,6 +32,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount frontend static files (CSS, JS, images etc)
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 # ─── Database Configuration ───────────────────────────────────────────────────
 DB_CONFIG = {
@@ -103,6 +113,10 @@ class OrderStatusUpdate(BaseModel):
 
 @app.get("/")
 def root():
+    """Serve the frontend index.html."""
+    index_file = FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(str(index_file))
     return {"status": "ok", "app": "MPSS API", "version": "1.0.0"}
 
 @app.get("/health")
